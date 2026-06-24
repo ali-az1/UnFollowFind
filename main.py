@@ -4,8 +4,9 @@ from  time import sleep
 import os
 AUTH = "auth.json"
 import re
+from Usernamefind import Username
 from bs4 import BeautifulSoup
-
+from
 def loader(web):
     page.locator("a").filter(has_text=f"{web}").first.click()
     RESERVED = {"explore", "reels", "reel", "p", "stories", "direct",
@@ -115,7 +116,7 @@ with sync_playwright() as playwright:
                     page.get_by_text("Continue",exact=True).click()
 
     page.get_by_role("button", name="Not Now").click()
-    page.goto("https://www.instagram.com/ali_zdi1/")
+    page.goto(f"https://www.instagram.com/{Username()}/")
     loader("following")
     page.keyboard.press("Escape")
     sleep(2)
