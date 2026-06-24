@@ -1,4 +1,3 @@
-
 import openpyxl
 from playwright.sync_api import sync_playwright
 from  time import sleep
@@ -86,6 +85,12 @@ def differ(followers,following):
         if j not in followers:
             list1.append(j)
     return list1
+
+
+
+
+
+
 with sync_playwright() as playwright:
     browser = playwright.chromium.launch(headless=False)
     if os.path.exists(AUTH):
