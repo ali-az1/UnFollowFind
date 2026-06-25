@@ -6,9 +6,33 @@ AUTH = "auth.json"
 import re
 from Usernamefind import Username
 from bs4 import BeautifulSoup
-from
+def wait_for_captcha(page, timeout=300):
+    rc_frame = None
+    for _ in range(10):
+        for fr in page.frames:
+            if "recaptcha" in (fr.url or "").lower():
+                rc_frame = fr
+                break
+        if rc_frame:
+            break
+        sleep(1)
+
+    if not rc_frame:
+        return
+    print("\n⚠️  CAPTCHA detected — solve it in the browser window.")
+    if page.get_by_role("button",name="Save info").count()>0:
+        return
+
+
+
 def loader(web):
     page.locator("a").filter(has_text=f"{web}").first.click()
+    limit = None
+    cm = re.search(r"([\d.,]+)\s*([KMkm]?)",  page.locator("a").filter(has_text=f"{web}").first.inner_text())
+
+    if cm and not cm.group(2):
+        limit = int(re.sub(r"[.,]", "", cm.group(1)))
+        print(limit)
     RESERVED = {"explore", "reels", "reel", "p", "stories", "direct",
                 "accounts", "about", "tv", "developer",
                 "popular", "legal", "privacy", "terms",
@@ -21,30 +45,46 @@ def loader(web):
     username = []
     stable = 0
     prev = 0
+    sleep(5)
+    from bs4 import Tag  # move this up with your other imports
+
     while stable < 3:
+        soup = BeautifulSoup(dialog.inner_html(), "html.parser")
 
-        html = dialog.inner_html()
-        soup = BeautifulSoup(html, "html.parser")
+        stop = False
+        for el in soup.descendants:
+            if not isinstance(el, Tag):
+                continue
 
-        for a in soup.find_all("a", href=True):
-            m = re.fullmatch(r"/([A-Za-z0-9._]+)/", a["href"])
-            if m and m.group(1) not in RESERVED:
-                u = m.group(1)
-                if u not in seen:
-                    seen.add(u)
-                    username.append(u)
-        #print(username)
+            # heading sits ABOVE the suggested accounts -> stop here
+            if el.name in ("h4", "span", "div") and el.get_text(" ", strip=True) == "Suggested for you":
+                stop = True
+                break
+
+            if el.name == "a" and el.get("href"):
+                m = re.fullmatch(r"/([A-Za-z0-9._]+)/", el["href"])
+                if m and m.group(1) not in RESERVED:
+                    u = m.group(1)
+                    if u not in seen:
+                        seen.add(u)
+                        username.append(u)
+                        if limit and len(username) >= limit:
+                            stop = True
+                            break
+
+        if stop:
+            break
+
         rows = dialog.locator('a[href^="/"]')
         if rows.count():
             rows.nth(rows.count() - 1).scroll_into_view_if_needed()
-        sleep(2)                         # ← let the next batch load
+        sleep(2)
 
         if len(seen) == prev:
             stable += 1
         else:
             stable = 0
         prev = len(seen)
-
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = f"{web}"
@@ -62,11 +102,14 @@ def log_in(context):
     password=input("enter the password")
     page.get_by_role("textbox", name="password").fill(password)
     page.get_by_text("Log in", exact=True).click()
-    sleep(5)
+    sleep(7)
     if page.locator("#_r_3_").count()>0 and page.locator("#_r_3_").is_visible():
         a=input("enter the verification code")
         page.locator("#_r_3_").fill(a)
-    page.get_by_text("Continue", exact=True).click()
+        page.get_by_text("Continue", exact=True).click()
+
+    wait_for_captcha(page)
+
     page.get_by_role("button",name="Save info").click()
     sleep(2)
     context.storage_state(path=AUTH)
@@ -106,10 +149,10 @@ with sync_playwright() as playwright:
         page.get_by_role("button",name="Continue").first.click()
         sleep(2)
         if page.locator('input[name="pass"]').count()>0:
-            page.locator('input[name="pass"]').fill(input("enter the verification code"))
+            page.locator('input[name="pass"]').fill(input("enter the pass"))
             if page.get_by_text("Log in",exact=True).count()>0:
                 page.get_by_text("Log in",exact=True).click()
-                sleep(3)
+                sleep(6)
                 code_box = page.get_by_role("textbox", name=re.compile("code|security", re.I))
                 if code_box.count() > 0:
                     code_box.first.fill(input("enter verification code: "))
@@ -125,4 +168,3 @@ followers = read_usernames("followers.xlsx")
 following = read_usernames("following.xlsx")
 notfollow=differ(followers,following)
 print(notfollow)
-
