@@ -1,4 +1,14 @@
+# Live Instagram sessions -- never commit these
 auth.json
+auth*.json
+*-auth.json
+*.session.json
+
+# Your own data: exports, snapshots, personal whitelist
+data/
 *.xlsx
+whitelist.txt
+
 __pycache__/
 .idea/
+.venv/

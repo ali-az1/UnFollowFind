@@ -1,0 +1,11 @@
+# Copy this file to whitelist.txt and put your own accounts in it.
+#
+# Accounts listed here are hidden from the "Not following you back" report --
+# brands, news pages, shops, anyone you follow on purpose and never expect a
+# follow back from. One username per line, without @, # starts a comment.
+#
+# whitelist.txt is git-ignored, so your list stays on your machine.
+
+# natgeo
+# nasa
+# some.local.cafe
